@@ -15,6 +15,8 @@ DOT Scanner is a modern, privacy-focused Progressive Web App (PWA) that transfor
 
 **[Try DOT Scanner Here!](https://iam-arun-c.github.io/DOT-Scanner-PWA-Business-Card-Scanner/)**
 
+https://iam-arun-c.github.io/DOT-Scanner-PWA-Business-Card-Scanner/preview.png
+
 *(Note: The live demo is hosted on GitHub Pages. Feel free to scan, save, and test all features.)*
 
 ---
