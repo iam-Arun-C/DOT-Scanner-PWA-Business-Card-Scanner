@@ -1,42 +1,268 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <title>DOT Scanner</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#111827">
     
-    <!-- PWA Manifest -->
+    <!-- PWA Manifest Link -->
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/svg+xml" href="vite.svg" />
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-    <!-- Tailwind CSS - This is the only script in the head -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- CSS RESET & BASIC SETUP --- */
+        :root {
+            --color-bg: #111827;
+            --color-text: #e5e7eb;
+            --color-text-muted: #9ca3af;
+            --color-primary: #4f46e5;
+            --color-primary-hover: #4338ca;
+            --color-green: #16a34a;
+            --color-red: #dc2626;
+            --color-panel: rgba(0, 0, 0, 0.3);
+            --color-border: rgba(255, 255, 255, 0.1);
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--color-bg); color: var(--color-text); font-family: var(--font-family); overflow-x: hidden; line-height: 1.5; }
+        button, input, textarea { font-family: inherit; }
+        button { cursor: pointer; border: none; background: none; }
+        a { color: var(--color-primary); text-decoration: none; }
+        .hidden { display: none !important; }
+
+        /* --- LAYOUT & CONTAINERS --- */
+        .main-container { max-width: 56rem; margin: 0 auto; padding: 2rem 1rem; }
+        .full-screen-center { display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; }
+        .header { display: flex; flex-direction: column; justify-content: space-between; align-items: center; margin-bottom: 2rem; gap: 1rem; }
+        @media (min-width: 640px) { .header { flex-direction: row; } }
+        .form-container { background: var(--color-panel); backdrop-filter: blur(10px); border: 1px solid var(--color-border); border-radius: 1rem; padding: 1.5rem; max-width: 28rem; width: 100%; margin: 0 auto; }
+
+        /* --- BUTTONS --- */
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem 1.5rem; font-weight: bold; border-radius: 0.5rem; transition: background-color 0.2s; gap: 0.5rem; }
+        .btn-primary { background-color: var(--color-primary); color: white; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .btn-primary:hover { background-color: var(--color-primary-hover); }
+        .btn-primary:disabled { background-color: #4b5563; cursor: not-allowed; }
+        .btn-green { background-color: var(--color-green); color: white; }
+        .btn-icon { padding: 0.5rem; border-radius: 9999px; color: var(--color-text-muted); }
+        .btn-icon:hover { background-color: rgba(255, 255, 255, 0.1); color: white; }
+        .btn-icon.delete { color: var(--color-red); }
+        .btn-icon.delete:hover { background-color: rgba(220, 38, 38, 0.1); }
+        
+        /* --- FORMS & INPUTS --- */
+        .form-group { margin-bottom: 1.25rem; text-align: left; }
+        .form-label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
+        .form-input, .form-textarea { width: 100%; background-color: #1f2937; border: 1px solid #4b5563; border-radius: 0.375rem; padding: 0.5rem 0.75rem; color: white; }
+        .form-input:focus, .form-textarea:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary); }
+        
+        /* --- CONTACT LIST --- */
+        .contact-list { display: grid; gap: 1rem; }
+        .contact-item { background: var(--color-panel); backdrop-filter: blur(10px); padding: 1rem; border-radius: 0.75rem; border: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: border-color 0.2s; }
+        .contact-item:hover { border-color: var(--color-primary); }
+        .contact-details p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .contact-details .name { font-weight: bold; font-size: 1.125rem; }
+        .contact-details .info { color: var(--color-text-muted); font-size: 0.875rem; }
+        .contact-details .email { color: var(--color-primary); font-size: 0.875rem; }
+
+        /* --- WELCOME SCREEN --- */
+        .welcome-icon { width: 6rem; height: 6rem; color: var(--color-primary); margin-bottom: 2rem; animation: pulse-slow 4s ease-in-out infinite; }
+        .welcome-screen h1 { font-size: 2.5rem; font-weight: bold; margin-bottom: 1rem; }
+        .welcome-screen p { font-size: 1.125rem; color: var(--color-text-muted); max-width: 40rem; margin: 0 auto 2.5rem; }
+        
+        /* --- SCANNER & CAMERA --- */
+        .scanner-fab { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 40; width: 3.5rem; height: 3.5rem; border-radius: 9999px; background-color: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); transition: transform 0.2s; }
+        .scanner-fab:hover { transform: scale(1.05); }
+        .camera-backdrop { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.8); display: flex; align-items: center; justify-content: center; z-index: 50; }
+        .camera-container { position: relative; width: 90vw; max-width: 40rem; height: 70vh; background: black; border-radius: 0.5rem; overflow: hidden; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25); }
+        #camera-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        .scanner-cutout-container { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+        .scanner-cutout { width: 90%; max-width: 32rem; aspect-ratio: 85 / 55; position: relative; box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.7); border-radius: 1.25rem; }
+        .capture-button-container { position: absolute; bottom: 1rem; left: 0; right: 0; z-index: 10; text-align: center; }
+        #capture-btn { width: 4rem; height: 4rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(5px); border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        #capture-btn:active { transform: scale(0.9); }
+        #capture-btn div { width: 3rem; height: 3rem; background: white; border-radius: 50%; }
+
+        /* --- ANIMATIONS --- */
+        .fade-in { animation: fadeIn 1s ease-out forwards; opacity: 0; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-slow { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.02); } }
+        .scan-line-container { position: absolute; top: 0; left: 0; right: 0; height: 100%; animation: scan-line 3s ease-in-out infinite 0.5s; }
+        .scan-line { width: 100%; height: 2px; background-color: var(--color-primary); box-shadow: 0 0 15px 5px rgba(79, 70, 229, 0.6); }
+        @keyframes scan-line { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 90% { transform: translateY(calc(100% - 2px)); opacity: 1; } 100% { transform: translateY(calc(100% - 2px)); opacity: 0; } }
+    </style>
+</head>
+<body>
     
-  </head>
-  <body class="bg-gray-900 text-white font-sans overflow-x-hidden">
-    
-    <!-- Main application container -->
     <div id="root"></div>
-
-    <!-- Modal container for contact previews -->
-    <div id="modal-container" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden"></div>
-
-    <!-- Confirmation modal container -->
-    <div id="confirmation-modal-container" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden"></div>
+    <div id="scan-fab-container"></div>
     
-    <!-- Scanner FAB -->
-    <div id="scan-fab-container" class="fixed bottom-6 right-6 z-40"></div>
-
-    <!-- PWA installation banner -->
-    <div id="pwa-install-banner" class="hidden fixed bottom-0 left-0 right-0 z-40"></div>
-
-    <!-- All scripts are now at the end of the body -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@6/dist/tesseract.min.js"></script>
-    <script src="script.js" defer></script>
     
-  </body>
+    <script>
+        // --- STATE MANAGEMENT ---
+        const AppState = { appState: 'welcome', contacts: [], editingContact: null, error: null, isLoading: false, stream: null, };
+
+        // --- UTILS ---
+        const generateCSV = (contacts) => {
+            const headers = ['Name', 'Job Title', 'Company', 'Email', 'Phone 1', 'Phone 2', 'Website', 'Address'];
+            const rows = contacts.map(c => `"${c.name||''}","${c.jobTitle||''}","${c.company||''}","${c.email||''}","${c.phone1||''}","${c.phone2||''}","${c.website||''}","${(c.address||'').replace(/"/g,'""')}"`);
+            return [headers.join(','), ...rows].join('\n');
+        };
+        const preprocessImage = (sourceCanvas) => {
+            const resizeCanvas = document.createElement('canvas');
+            const resizeCtx = resizeCanvas.getContext('2d');
+            const targetWidth = 1200;
+            const aspectRatio = sourceCanvas.height / sourceCanvas.width;
+            const targetHeight = targetWidth * aspectRatio;
+            resizeCanvas.width = targetWidth;
+            resizeCanvas.height = targetHeight;
+            resizeCtx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+            const ctx = resizeCtx; const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight); const data = imageData.data; const contrast = 2.0; const intercept = 128 * (1 - contrast);
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+                let contrasted = Math.max(0, Math.min(255, gray * contrast + intercept));
+                data[i] = data[i+1] = data[i+2] = contrasted;
+            }
+            ctx.putImageData(imageData, 0, 0); return resizeCanvas.toDataURL('image/jpeg', 0.9);
+        };
+        const extractContactDetails = (text) => {
+            const cleanedText = text.replace(/[^a-zA-Z0-9\s@.\-]/g, '');
+            let lines = cleanedText.split('\n').map(l => l.trim()).filter(l => l && l.length > 2);
+            const result = { name: '', jobTitle: '', email: '', phone1: '', phone2: '', company: '', website: '', address: '' };
+            const usedLines = new Set();
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+            for (const line of lines) { const emailMatch = line.match(emailRegex); if (emailMatch) { result.email = emailMatch[0].toLowerCase(); usedLines.add(line); break; } }
+            if (result.email) {
+                const [alias, domain] = result.email.split('@'); result.name = alias.replace(/[._\d-]/g, ' ').split(' ').map(n => n.charAt(0).toUpperCase() + n.slice(1)).join(' ').trim(); result.website = `www.${domain}`;
+                const companyDomain = domain.split('.')[0]; const freeProviders = ['gmail', 'yahoo', 'outlook', 'hotmail', 'aol', 'icloud'];
+                if (!freeProviders.includes(companyDomain)) { result.company = companyDomain.charAt(0).toUpperCase() + companyDomain.slice(1); }
+            }
+            lines.forEach(line => {
+                const phoneMatches = line.match(/(?:(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/g);
+                if (phoneMatches) { phoneMatches.forEach(p => { if (p.replace(/\D/g, '').length >= 7) { if (!result.phone1) { result.phone1 = p; usedLines.add(line); } else if (!result.phone2) { result.phone2 = p; usedLines.add(line); } } }); }
+            });
+            let remainingLines = lines.filter(line => !usedLines.has(line));
+            const pincodeRegex = /\b\d{6}\b/; let pinLineIndex = -1;
+            remainingLines.forEach((line, index) => { if (pincodeRegex.test(line)) pinLineIndex = index; });
+            if (pinLineIndex !== -1) {
+                let addressBlock = [];
+                for (let i = pinLineIndex; i >= 0; i--) { const currentLine = remainingLines[i]; addressBlock.unshift(currentLine); usedLines.add(currentLine); const prevLine = i > 0 ? remainingLines[i - 1] : null; if (!prevLine || prevLine.split(/\s+/).length < 2) break; }
+                result.address = addressBlock.join('\n'); remainingLines = remainingLines.filter(line => !usedLines.has(line));
+            }
+            const jobKeywords = ['manager', 'director', 'president', 'founder', 'engineer', 'developer', 'designer', 'consultant', 'executive', 'officer', 'representative', 'sales', 'ceo', 'cto', 'cfo'];
+            remainingLines.forEach(line => {
+                const words = line.split(/\s+/);
+                if (words.length > 0 && words.length <= 3 && jobKeywords.some(kw => line.toLowerCase().includes(kw))) { if (!result.jobTitle) { result.jobTitle = line; usedLines.add(line); } }
+            });
+            return result;
+        };
+
+        // --- [Backup] GOOGLE FORM SUBMISSION (OPTIONAL) ---
+        async function submitToGoogleForm(details) {
+            // TODO: Replace with your actual Google Form URL ending in /formResponse
+            const formUrl = ""; // Example: "https://docs.google.com/forms/d/e/1FAIpQLSc.../formResponse"
+            if (!formUrl) { console.log("Google Form URL not provided. Skipping submission."); return; }
+            // TODO: Replace with the actual 'entry.XXXX' IDs from your Google Form.
+            const keyMap = { name: 'entry.YOUR_ID', jobTitle: 'entry.YOUR_ID', company: 'entry.YOUR_ID', email: 'entry.YOUR_ID', phone1: 'entry.YOUR_ID', website: 'entry.YOUR_ID', address: 'entry.YOUR_ID' };
+            const formData = new URLSearchParams();
+            Object.keys(keyMap).forEach(key => formData.append(keyMap[key], details[key] || ''));
+            try { await fetch(formUrl, { method: 'POST', body: formData, mode: 'no-cors' }); console.log("Form submitted successfully."); } 
+            catch (error) { console.error("Error submitting to Google Form:", error); }
+        }
+
+        // --- HTML TEMPLATES ---
+        const WelcomeScreenHTML = () => `<div class="full-screen-center welcome-screen fade-in"><div><svg class="welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg><h1>DOT Scanner</h1><p>Scan business cards instantly. All data is stored securely in your browser.</p><button id="start-scan-btn" class="btn btn-primary">Start Scanning</button></div></div>`;
+        const LoadingIndicatorHTML = (message) => `<div class="full-screen-center"><p>${message}</p></div>`;
+        const ErrorScreenHTML = (message) => `<div class="full-screen-center"><div><h2>An Error Occurred</h2><p>${message}</p><button id="reset-app-btn" class="btn btn-primary">Go Back</button></div></div>`;
+        const ScannerFabHTML = () => `<button id="scan-fab-btn" class="scanner-fab"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></button>`;
+        const CameraCaptureHTML = () => `<div class="camera-backdrop" id="camera-backdrop"><div class="camera-container"><video id="camera-video" autoplay playsinline></video><div class="scanner-cutout-container"><div class="scanner-cutout" id="scanner-cutout"><div class="scan-line-container"><div class="scan-line"></div></div></div></div><div class="capture-button-container"><button id="capture-btn" aria-label="Scan Card"><div></div></button></div></div></div>`;
+        const ContactListHTML = (contacts) => `<div class="main-container"><header class="header"><h1>Saved Contacts</h1><button id="download-csv-btn" class="btn btn-green" ${contacts.length === 0 ? 'disabled' : ''}>Download CSV</button></header>${contacts.length === 0 ? `<div style="text-align:center;padding:2rem;background:var(--color-panel);border-radius:0.5rem;"><p>No contacts saved. Use the scan button to get started.</p></div>` : `<div class="contact-list">${contacts.map((c, i) => `<div class="contact-item" data-index="${i}"><div class="contact-details"><p class="name">${c.name||'No Name'}</p><p class="info">${c.jobTitle||c.company||'No Details'}</p><p class="email">${c.email||''}</p></div><div style="display:flex;gap:0.5rem;"><button class="btn-icon edit-btn" data-index="${i}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="btn-icon delete delete-btn" data-index="${i}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div>`).join('')}</div>`}</div>`;
+        const ContactEditorHTML = (c, isNew) => `<div class="main-container"><div class="form-container"><h2 style="text-align:center;font-size:1.5rem;font-weight:bold;margin-bottom:1rem;">${isNew?'New Contact':'Edit Contact'}</h2><div class="form-group"><label class="form-label">Name</label><input type="text" id="edit-name" class="form-input" value="${c.name||''}"></div><div class="form-group"><label class="form-label">Job Title</label><input type="text" id="edit-jobTitle" class="form-input" value="${c.jobTitle||''}"></div><div class="form-group"><label class="form-label">Company</label><input type="text" id="edit-company" class="form-input" value="${c.company||''}"></div><div class="form-group"><label class="form-label">Email</label><input type="email" id="edit-email" class="form-input" value="${c.email||''}"></div><div class="form-group"><label class="form-label">Phone</label><input type="tel" id="edit-phone1" class="form-input" value="${c.phone1||''}"></div><div class="form-group"><label class="form-label">Website</label><input type="url" id="edit-website" class="form-input" value="${c.website||''}"></div><div class="form-group"><label class="form-label">Address</label><textarea id="edit-address" class="form-input">${c.address||''}</textarea></div><div style="display:flex;flex-direction:column;gap:0.5rem;"><button id="save-contact-btn" class="btn btn-primary">${isNew?'Save':'Update'}</button><button id="cancel-edit-btn" class="btn">Cancel</button></div></div></div>`;
+
+        // --- RENDER & EVENT HANDLING ---
+        const root = document.getElementById('root');
+        const scanFabContainer = document.getElementById('scan-fab-container');
+        function renderApp() {
+            stopCamera(); let content = '';
+            if (AppState.isLoading) { root.innerHTML = LoadingIndicatorHTML("Analyzing Image..."); return; }
+            switch (AppState.appState) {
+                case 'welcome': content = WelcomeScreenHTML(); scanFabContainer.innerHTML = ''; break;
+                case 'list': content = ContactListHTML(AppState.contacts); scanFabContainer.innerHTML = ScannerFabHTML(); break;
+                case 'capturing': content = ContactListHTML(AppState.contacts) + CameraCaptureHTML(); scanFabContainer.innerHTML = ''; break;
+                case 'editing': content = ContactEditorHTML(AppState.editingContact.details, AppState.editingContact.index === null); scanFabContainer.innerHTML = ''; break;
+                case 'error': content = ErrorScreenHTML(AppState.error); scanFabContainer.innerHTML = ''; break;
+            }
+            root.innerHTML = content; attachAllListeners();
+        }
+        function attachAllListeners() {
+            document.getElementById('start-scan-btn')?.addEventListener('click', handleStartScanning);
+            document.getElementById('scan-fab-btn')?.addEventListener('click', handleStartScanning);
+            document.getElementById('download-csv-btn')?.addEventListener('click', handleDownloadCSV);
+            document.getElementById('reset-app-btn')?.addEventListener('click', handleResetApp);
+            document.querySelectorAll('.contact-item').forEach(item => item.addEventListener('click', e => { if (!e.target.closest('button')) handleEditContact(e.currentTarget.dataset.index) }));
+            document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', e => handleEditContact(e.currentTarget.dataset.index)));
+            document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', e => handleDeleteContact(e.currentTarget.dataset.index)));
+            document.getElementById('save-contact-btn')?.addEventListener('click', handleSaveContact);
+            document.getElementById('cancel-edit-btn')?.addEventListener('click', () => { AppState.appState = 'list'; renderApp(); });
+            if (AppState.appState === 'capturing') startCamera();
+        }
+        async function startCamera() {
+            try {
+                const video = document.getElementById('camera-video'); if (!video) return;
+                AppState.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } });
+                video.srcObject = AppState.stream;
+                document.getElementById('capture-btn').addEventListener('click', handleCapture);
+                document.getElementById('camera-backdrop').addEventListener('click', e => { if (e.target === e.currentTarget) { AppState.appState = 'list'; renderApp(); } });
+            } catch (err) { handleCameraError("Could not access camera. Please check permissions."); }
+        }
+        function stopCamera() { if (AppState.stream) { AppState.stream.getTracks().forEach(track => track.stop()); AppState.stream = null; } }
+
+        // --- EVENT HANDLERS ---
+        const handleStartScanning = () => { AppState.appState = 'capturing'; renderApp(); };
+        const handleResetApp = () => { AppState.appState = AppState.contacts.length > 0 ? 'list' : 'welcome'; AppState.error = null; renderApp(); };
+        const handleCapture = async () => {
+            const video = document.getElementById('camera-video'); const cutout = document.getElementById('scanner-cutout'); if (!video || !cutout) return;
+            const scaleX = video.videoWidth / video.clientWidth; const scaleY = video.videoHeight / video.clientHeight;
+            const cropCanvas = document.createElement('canvas'); cropCanvas.width = cutout.clientWidth * scaleX; cropCanvas.height = cutout.clientHeight * scaleY;
+            cropCanvas.getContext('2d').drawImage(video, cutout.offsetLeft * scaleX, cutout.offsetTop * scaleY, cropCanvas.width, cropCanvas.height, 0, 0, cropCanvas.width, cropCanvas.height);
+            const imageDataUrl = preprocessImage(cropCanvas); AppState.isLoading = true; renderApp();
+            try {
+                const worker = await Tesseract.createWorker('eng');
+                const { data: { text } } = await worker.recognize(imageDataUrl); await worker.terminate();
+                AppState.editingContact = { details: extractContactDetails(text), index: null }; AppState.appState = 'editing';
+            } catch (err) { handleCameraError("Failed to analyze image. Please try again."); } 
+            finally { AppState.isLoading = false; stopCamera(); renderApp(); }
+        };
+        const handleSaveContact = () => {
+            const details = { name: document.getElementById('edit-name')?.value, jobTitle: document.getElementById('edit-jobTitle')?.value, company: document.getElementById('edit-company')?.value, email: document.getElementById('edit-email')?.value, phone1: document.getElementById('edit-phone1')?.value, website: document.getElementById('edit-website')?.value, address: document.getElementById('edit-address')?.value, };
+            const index = AppState.editingContact.index;
+            if (index === null) { AppState.contacts.push(details); } else { AppState.contacts[index] = details; }
+            localStorage.setItem('contacts', JSON.stringify(AppState.contacts));
+            submitToGoogleForm(details); // <-- Call the optional submission function
+            AppState.appState = 'list'; renderApp();
+        };
+        const handleEditContact = (index) => { AppState.editingContact = { details: AppState.contacts[index], index: parseInt(index) }; AppState.appState = 'editing'; renderApp(); };
+        const handleDeleteContact = (index) => { if (confirm('Are you sure you want to delete this contact?')) { AppState.contacts.splice(index, 1); localStorage.setItem('contacts', JSON.stringify(AppState.contacts)); renderApp(); } };
+        const handleDownloadCSV = () => {
+            if (AppState.contacts.length === 0) return; const csvString = generateCSV(AppState.contacts); const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' }); const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'contacts.csv'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        };
+        const handleCameraError = (message) => { AppState.error = message; AppState.appState = 'error'; AppState.isLoading = false; stopCamera(); renderApp(); };
+
+        // --- PWA & INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            try { const savedContacts = localStorage.getItem('contacts'); if (savedContacts) AppState.contacts = JSON.parse(savedContacts); } 
+            catch (e) { AppState.contacts = []; }
+            AppState.appState = AppState.contacts.length > 0 ? 'list' : 'welcome'; renderApp();
+            // Register the service worker
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('service-worker.js')
+                        .then(reg => console.log('Service worker registered.', reg))
+                        .catch(err => console.log('Service worker registration failed:', err));
+                });
+            }
+        });
+    </script>
+</body>
 </html>
