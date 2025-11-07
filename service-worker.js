@@ -1,13 +1,13 @@
 const CACHE_NAME = 'dot-scanner-cache-v4'; // Incremented version to ensure update
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/script.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/vite.svg'
+  './',
+  './index.html',
+  './style.css',
+  './script.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './vite.svg'
 ];
 
 self.addEventListener('install', event => {
